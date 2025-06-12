@@ -463,8 +463,10 @@ var appEnvVariables = {
   USE_VECTORS: useVectors
   USE_GPT4V: useGPT4V
   USE_USER_UPLOAD: useUserUpload
-  AZURE_USERSTORAGE_ACCOUNT: useUserUpload ? userStorage.outputs.name : ''
-  AZURE_USERSTORAGE_CONTAINER: useUserUpload ? userStorageContainerName : ''
+  // AZURE_USERSTORAGE_ACCOUNT: useUserUpload ? userStorage.outputs.name : ''
+  AZURE_USERSTORAGE_ACCOUNT: storage.outputs.name
+  // AZURE_USERSTORAGE_CONTAINER: useUserUpload ? userStorageContainerName : ''
+  AZURE_USERSTORAGE_CONTAINER: storageContainerName
   AZURE_DOCUMENTINTELLIGENCE_SERVICE: documentIntelligence.outputs.name
   USE_LOCAL_PDF_PARSER: useLocalPdfParser
   USE_LOCAL_HTML_PARSER: useLocalHtmlParser
@@ -1340,8 +1342,10 @@ output AZURE_STORAGE_ACCOUNT string = storage.outputs.name
 output AZURE_STORAGE_CONTAINER string = storageContainerName
 output AZURE_STORAGE_RESOURCE_GROUP string = storageResourceGroup.name
 
-output AZURE_USERSTORAGE_ACCOUNT string = useUserUpload ? userStorage.outputs.name : ''
-output AZURE_USERSTORAGE_CONTAINER string = userStorageContainerName
+// output AZURE_USERSTORAGE_ACCOUNT string = useUserUpload ? userStorage.outputs.name : ''
+output AZURE_USERSTORAGE_ACCOUNT string = storage.outputs.name
+// output AZURE_USERSTORAGE_CONTAINER string = userStorageContainerName
+output AZURE_USERSTORAGE_CONTAINER string = storageContainerName
 output AZURE_USERSTORAGE_RESOURCE_GROUP string = storageResourceGroup.name
 
 output AZURE_AI_PROJECT string = useAiProject ? ai.outputs.projectName : ''

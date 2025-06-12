@@ -315,6 +315,36 @@ def config():
         }
     )
 
+@bp.route("/hello", methods=["POST"])
+async def hello():
+    return "Hello"
+
+@bp.route("/upload2", methods=["POST"])
+async def upload2():
+    try:
+        request_files = await request.files
+        if "file" not in request_files:
+            # If no files were included in the request, return an error response
+            return jsonify({"message": "No file part in the request", "status": "failed"}), 400
+
+        file = request_files.getlist("file")[0]
+        user_blob_container_client: FileSystemClient = current_app.config[CONFIG_USER_BLOB_CONTAINER_CLIENT]
+        print("$$$ hi hi hi $$$")
+        print(user_blob_container_client)
+        user_directory_client = user_blob_container_client.get_directory_client(".")
+        
+        file_client = user_directory_client.get_file_client(file.filename)
+        file_io = file
+        file_io.name = file.filename
+        file_io = io.BufferedReader(file_io)
+        await file_client.upload_data(file_io, overwrite=True, metadata={"UploadedBy": "upload2"})
+        file_io.seek(0)
+        ingester: UploadUserFileStrategy = current_app.config[CONFIG_INGESTER]
+        await ingester.add_file(File(content=file_io, url=file_client.url))
+        return jsonify({"message": "File uploaded successfully"}), 200
+    except Exception as e:
+        current_app.logger.exception("Exception in /speech")
+        return jsonify({"error": str(e)}), 500
 
 @bp.route("/speech", methods=["POST"])
 async def speech():
@@ -529,6 +559,11 @@ async def setup_clients():
     agent_client = KnowledgeAgentRetrievalClient(
         endpoint=AZURE_SEARCH_ENDPOINT, agent_name=AZURE_SEARCH_AGENT, credential=azure_credential
     )
+    
+    print("AZURE_STORAGE_ACCOUNT:")
+    print(AZURE_STORAGE_ACCOUNT)
+    print("AZURE_STORAGE_CONTAINER:")
+    print(AZURE_STORAGE_CONTAINER)
 
     blob_container_client = ContainerClient(
         f"https://{AZURE_STORAGE_ACCOUNT}.blob.core.windows.net", AZURE_STORAGE_CONTAINER, credential=azure_credential
@@ -556,7 +591,8 @@ async def setup_clients():
         enable_unauthenticated_access=AZURE_ENABLE_UNAUTHENTICATED_ACCESS,
     )
 
-    if USE_USER_UPLOAD:
+    # if USE_USER_UPLOAD:
+    if True:
         current_app.logger.info("USE_USER_UPLOAD is true, setting up user upload feature")
         if not AZURE_USERSTORAGE_ACCOUNT or not AZURE_USERSTORAGE_CONTAINER:
             raise ValueError(
