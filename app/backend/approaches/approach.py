@@ -4,6 +4,8 @@ from collections.abc import AsyncGenerator, Awaitable
 from dataclasses import dataclass
 from typing import Any, Callable, Optional, TypedDict, Union, cast
 from urllib.parse import urljoin
+from pydantic import BaseModel
+import openai
 
 import aiohttp
 from azure.search.documents.agent.aio import KnowledgeAgentRetrievalClient
@@ -87,7 +89,8 @@ class ThoughtStep:
 
     def update_token_usage(self, usage: CompletionUsage) -> None:
         if self.props:
-            self.props["token_usage"] = TokenUsageProps.from_completion_usage(usage)
+            self.props["token_usage"] = TokenUsageProps.from_completion_usage(
+                usage)
 
 
 @dataclass
@@ -146,7 +149,8 @@ class Approach(ABC):
         auth_helper: AuthenticationHelper,
         query_language: Optional[str],
         query_speller: Optional[str],
-        embedding_deployment: Optional[str],  # Not needed for non-Azure OpenAI or for retrieval_mode="text"
+        # Not needed for non-Azure OpenAI or for retrieval_mode="text"
+        embedding_deployment: Optional[str],
         embedding_model: str,
         embedding_dimensions: int,
         embedding_field: str,
@@ -175,12 +179,15 @@ class Approach(ABC):
     def build_filter(self, overrides: dict[str, Any], auth_claims: dict[str, Any]) -> Optional[str]:
         include_category = overrides.get("include_category")
         exclude_category = overrides.get("exclude_category")
-        security_filter = self.auth_helper.build_security_filters(overrides, auth_claims)
+        security_filter = self.auth_helper.build_security_filters(
+            overrides, auth_claims)
         filters = []
         if include_category:
-            filters.append("category eq '{}'".format(include_category.replace("'", "''")))
+            filters.append("category eq '{}'".format(
+                include_category.replace("'", "''")))
         if exclude_category:
-            filters.append("category ne '{}'".format(exclude_category.replace("'", "''")))
+            filters.append("category ne '{}'".format(
+                exclude_category.replace("'", "''")))
         if security_filter:
             filters.append(security_filter)
         return None if len(filters) == 0 else " and ".join(filters)
@@ -235,7 +242,8 @@ class Approach(ABC):
                         sourcefile=document.get("sourcefile"),
                         oids=document.get("oids"),
                         groups=document.get("groups"),
-                        captions=cast(list[QueryCaptionResult], document.get("@search.captions")),
+                        captions=cast(list[QueryCaptionResult],
+                                      document.get("@search.captions")),
                         score=document.get("@search.score"),
                         reranker_score=document.get("@search.reranker_score"),
                     )
@@ -301,7 +309,8 @@ class Approach(ABC):
         if response and response.references:
             if results_merge_strategy == "interleaved":
                 # Use interleaved reference order
-                references = sorted(response.references, key=lambda reference: int(reference.id))
+                references = sorted(response.references,
+                                    key=lambda reference: int(reference.id))
             else:
                 # Default to descending strategy
                 references = response.references
@@ -331,12 +340,14 @@ class Approach(ABC):
             return [
                 (self.get_citation((doc.sourcepage or ""), use_image_citation))
                 + ": "
-                + nonewlines(" . ".join([cast(str, c.text) for c in (doc.captions or [])]))
+                + nonewlines(" . ".join([cast(str, c.text)
+                             for c in (doc.captions or [])]))
                 for doc in results
             ]
         else:
             return [
-                (self.get_citation((doc.sourcepage or ""), use_image_citation)) + ": " + nonewlines(doc.content or "")
+                (self.get_citation((doc.sourcepage or ""), use_image_citation)
+                 ) + ": " + nonewlines(doc.content or "")
                 for doc in results
             ]
 
@@ -347,7 +358,7 @@ class Approach(ABC):
             path, ext = os.path.splitext(sourcepage)
             if ext.lower() == ".png":
                 page_idx = path.rfind("-")
-                page_number = int(path[page_idx + 1 :])
+                page_number = int(path[page_idx + 1:])
                 return f"{path[:page_idx]}.pdf#page={page_number}"
 
             return sourcepage
@@ -363,7 +374,8 @@ class Approach(ABC):
             dimensions: int
 
         dimensions_args: ExtraArgs = (
-            {"dimensions": self.embedding_dimensions} if SUPPORTED_DIMENSIONS_MODEL[self.embedding_model] else {}
+            {"dimensions": self.embedding_dimensions} if SUPPORTED_DIMENSIONS_MODEL[self.embedding_model] else {
+            }
         )
         embedding = await self.openai_client.embeddings.create(
             # Azure OpenAI takes the deployment name as the model name
@@ -377,7 +389,8 @@ class Approach(ABC):
         return VectorizedQuery(vector=query_vector, k_nearest_neighbors=50, fields=self.embedding_field)
 
     async def compute_image_embedding(self, q: str):
-        endpoint = urljoin(self.vision_endpoint, "computervision/retrieval:vectorizeText")
+        endpoint = urljoin(self.vision_endpoint,
+                           "computervision/retrieval:vectorizeText")
         headers = {"Content-Type": "application/json"}
         params = {"api-version": "2024-02-01", "model-version": "2023-04-15"}
         data = {"text": q}
@@ -431,7 +444,8 @@ class Approach(ABC):
             if supported_features.streaming and should_stream:
                 params["stream"] = True
                 params["stream_options"] = {"include_usage": True}
-            params["reasoning_effort"] = reasoning_effort or overrides.get("reasoning_effort") or self.reasoning_effort
+            params["reasoning_effort"] = reasoning_effort or overrides.get(
+                "reasoning_effort") or self.reasoning_effort
 
         else:
             # Include parameters that may not be supported for reasoning models
@@ -443,7 +457,41 @@ class Approach(ABC):
             params["stream"] = True
             params["stream_options"] = {"include_usage": True}
 
+        print("#### creating tools objects ####")
+        # class GetDeliveryDate(BaseModel):
+        #     expiration_date: str
+
+        # tools = [openai.pydantic_function_tool(GetDeliveryDate)]
         params["tools"] = tools
+
+        # tools = [
+        #     {
+        #         "type": "function",
+        #         "function": {
+        #             "name": "email_contract_info",
+        #             "description": "Email information about a contract",
+        #             "parameters": {
+        #                 "type": "object",
+        #                 "properties": {
+        #                     "signing_date": {
+        #                         "type": "string",
+        #                         "description": "The date when the contract was signed",
+        #                     },
+        #                     "expiry_date": {
+        #                         "type": "string",
+        #                         "description": "The date when the contract expires",
+        #                     },
+        #                 },
+        #                 "required": ["signing_date", "expiry_date"],
+        #                 "additionalProperties": False,
+        #             },
+        #             "strict": True
+        #         }
+        #     }
+        # ]
+        
+        # print("### params: ")
+        # print(params)
 
         # Azure OpenAI takes the deployment name as the model name
         return self.openai_client.chat.completions.create(
@@ -451,6 +499,8 @@ class Approach(ABC):
             messages=messages,
             seed=overrides.get("seed", None),
             n=n or 1,
+            # tools=tools,
+            # tool_choice="required",
             **params,
         )
 
@@ -473,7 +523,8 @@ class Approach(ABC):
                 "reasoning_effort", self.reasoning_effort
             )
         if usage:
-            properties["token_usage"] = TokenUsageProps.from_completion_usage(usage)
+            properties["token_usage"] = TokenUsageProps.from_completion_usage(
+                usage)
         return ThoughtStep(title, messages, properties)
 
     async def run(

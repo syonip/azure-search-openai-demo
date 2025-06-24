@@ -147,7 +147,7 @@ class ChatReadRetrieveReadApproach(ChatApproach):
             self.query_rewrite_prompt, {"user_query": original_user_query, "past_messages": messages[:-1]}
         )
         tools: list[ChatCompletionToolParam] = self.query_rewrite_tools
-
+        print("&&&&&&&&&&&")
         # STEP 1: Generate an optimized keyword search query based on the chat history and the last question
 
         chat_completion = cast(

@@ -36,6 +36,8 @@ export default defineConfig({
             "/speech": "http://localhost:50505",
             "/hello": "http://localhost:50505",
             "/upload2": "http://localhost:50505",
+            "/upload3": "http://localhost:50505",
+            "/structured": "http://localhost:50505",
             "/config": "http://localhost:50505",
             "/upload": "http://localhost:50505",
             "/delete_uploaded": "http://localhost:50505",
