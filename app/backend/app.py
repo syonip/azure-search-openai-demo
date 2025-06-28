@@ -248,6 +248,66 @@ async def chat(auth_claims: dict[str, Any]):
     except Exception as error:
         return error_response(error, "/chat")
 
+@bp.route("/structured", methods=["POST"])
+async def structured():
+    if not request.is_json:
+        return jsonify({"error": "request must be json"}), 415
+    request_json = await request.get_json()
+    context = request_json.get("context", {})
+    # context["auth_claims"] = auth_claims
+    try:
+        use_gpt4v = context.get("overrides", {}).get("use_gpt4v", False)
+        approach: Approach
+        if use_gpt4v and CONFIG_CHAT_VISION_APPROACH in current_app.config:
+            approach = cast(Approach, current_app.config[CONFIG_CHAT_VISION_APPROACH])
+        else:
+            approach = cast(Approach, current_app.config[CONFIG_CHAT_APPROACH])
+
+        # If session state is provided, persists the session state,
+        # else creates a new session_id depending on the chat history options enabled.
+        session_state = request_json.get("session_state")
+        if session_state is None:
+            session_state = create_session_id(
+                current_app.config[CONFIG_CHAT_HISTORY_COSMOS_ENABLED],
+                current_app.config[CONFIG_CHAT_HISTORY_BROWSER_ENABLED],
+            )
+        result = await approach.run(
+            request_json["messages"],
+            context=context,
+            session_state=session_state,
+        )
+        return jsonify(result)
+    except Exception as error:
+        return error_response(error, "/structured")
+    
+@bp.route("/upload2", methods=["POST"])
+async def upload2():
+    try:
+        request_files = await request.files
+        if "file" not in request_files:
+            # If no files were included in the request, return an error response
+            return jsonify({"message": "No file part in the request", "status": "failed"}), 400
+
+        file = request_files.getlist("file")[0]
+        print("$$$ file is:")
+        print(file)
+        user_blob_container_client: FileSystemClient = current_app.config[CONFIG_USER_BLOB_CONTAINER_CLIENT]
+        print("$$$ hi hi hi $$$")
+        print(user_blob_container_client)
+        user_directory_client = user_blob_container_client.get_directory_client(".")
+
+        file_client = user_directory_client.get_file_client(file.filename)
+        file_io = file
+        file_io.name = file.filename
+        file_io = io.BufferedReader(file_io)
+        await file_client.upload_data(file_io, overwrite=True, metadata={"UploadedBy": "upload2"})
+        file_io.seek(0)
+        ingester: UploadUserFileStrategy = current_app.config[CONFIG_INGESTER]
+        await ingester.add_file(File(content=file_io, url=file_client.url))
+        return jsonify({"message": "File uploaded successfully"}), 200
+    except Exception as e:
+        current_app.logger.exception("Exception in /speech")
+        return jsonify({"error": str(e)}), 500
 
 @bp.route("/chat/stream", methods=["POST"])
 @authenticated
@@ -556,6 +616,7 @@ async def setup_clients():
         enable_unauthenticated_access=AZURE_ENABLE_UNAUTHENTICATED_ACCESS,
     )
 
+    # if True:
     if USE_USER_UPLOAD:
         current_app.logger.info("USE_USER_UPLOAD is true, setting up user upload feature")
         if not AZURE_USERSTORAGE_ACCOUNT or not AZURE_USERSTORAGE_CONTAINER:
