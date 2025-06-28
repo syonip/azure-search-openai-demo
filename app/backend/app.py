@@ -616,8 +616,8 @@ async def setup_clients():
         enable_unauthenticated_access=AZURE_ENABLE_UNAUTHENTICATED_ACCESS,
     )
 
-    # if True:
-    if USE_USER_UPLOAD:
+    # if USE_USER_UPLOAD:
+    if True:
         current_app.logger.info("USE_USER_UPLOAD is true, setting up user upload feature")
         if not AZURE_USERSTORAGE_ACCOUNT or not AZURE_USERSTORAGE_CONTAINER:
             raise ValueError(
