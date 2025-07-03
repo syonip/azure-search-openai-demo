@@ -145,7 +145,6 @@ class SingleFileSearchApproach(Approach):
             top,
             q,
             filter,
-            facets,
             vectors,
             use_text_search,
             use_vector_search,
@@ -154,6 +153,7 @@ class SingleFileSearchApproach(Approach):
             minimum_search_score,
             minimum_reranker_score,
             use_query_rewriting,
+            facets,
         )
 
         text_sources = self.get_sources_content(results, use_semantic_captions, use_image_citation=False)

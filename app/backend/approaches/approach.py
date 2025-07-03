@@ -190,7 +190,6 @@ class Approach(ABC):
         top: int,
         query_text: Optional[str],
         filter: Optional[str],
-        facets: Optional[list[str]],
         vectors: list[VectorQuery],
         use_text_search: bool,
         use_vector_search: bool,
@@ -199,6 +198,7 @@ class Approach(ABC):
         minimum_search_score: Optional[float] = None,
         minimum_reranker_score: Optional[float] = None,
         use_query_rewriting: Optional[bool] = None,
+        facets: Optional[list[str]] = None,
     ) -> list[Document]:
         search_text = query_text if use_text_search else ""
         search_vectors = vectors if use_vector_search else []
