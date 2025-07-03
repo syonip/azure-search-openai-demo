@@ -1,0 +1,1 @@
+python -m quart --app main:app run --port 50505 --host localhost --reload

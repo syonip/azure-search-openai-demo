@@ -12,6 +12,7 @@ import nlTranslation from "../locales/nl/translation.json";
 import ptBRTranslation from "../locales/ptBR/translation.json";
 import trTranslation from "../locales/tr/translation.json";
 import itTranslation from "../locales/it/translation.json";
+import heTranslation from "../locales/he/translation.json";
 
 export const supportedLngs: { [key: string]: { name: string; locale: string } } = {
     da: {
