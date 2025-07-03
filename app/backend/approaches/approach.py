@@ -190,6 +190,7 @@ class Approach(ABC):
         top: int,
         query_text: Optional[str],
         filter: Optional[str],
+        facets: Optional[list[str]],
         vectors: list[VectorQuery],
         use_text_search: bool,
         use_vector_search: bool,
@@ -202,9 +203,14 @@ class Approach(ABC):
         search_text = query_text if use_text_search else ""
         search_vectors = vectors if use_vector_search else []
         if use_semantic_ranker:
+            print("$$$ Running semantic search with query: ", search_text, 
+                  "filter: ", filter, "facets: ", facets, "top: ", top, 
+                  "use_semantic_captions: ", use_semantic_captions, 
+                  "use_query_rewriting: ", use_query_rewriting)
             results = await self.search_client.search(
                 search_text=search_text,
                 filter=filter,
+                facets=facets,
                 top=top,
                 query_caption="extractive|highlight-false" if use_semantic_captions else None,
                 query_rewrites="generative" if use_query_rewriting else None,

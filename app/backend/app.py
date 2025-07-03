@@ -52,6 +52,7 @@ from quart_cors import cors
 
 from approaches.approach import Approach
 from approaches.chatreadretrieveread import ChatReadRetrieveReadApproach
+from approaches.singlefilesearch import SingleFileSearchApproach
 from approaches.chatreadretrievereadvision import ChatReadRetrieveReadVisionApproach
 from approaches.promptmanager import PromptyManager
 from approaches.retrievethenread import RetrieveThenReadApproach
@@ -65,6 +66,7 @@ from config import (
     CONFIG_AUTH_CLIENT,
     CONFIG_BLOB_CONTAINER_CLIENT,
     CONFIG_CHAT_APPROACH,
+    CONFIG_SINGLE_FILE_APPROACH,
     CONFIG_CHAT_HISTORY_BROWSER_ENABLED,
     CONFIG_CHAT_HISTORY_COSMOS_ENABLED,
     CONFIG_CHAT_VISION_APPROACH,
@@ -261,7 +263,8 @@ async def structured():
         if use_gpt4v and CONFIG_CHAT_VISION_APPROACH in current_app.config:
             approach = cast(Approach, current_app.config[CONFIG_CHAT_VISION_APPROACH])
         else:
-            approach = cast(Approach, current_app.config[CONFIG_CHAT_APPROACH])
+            approach = cast(Approach, current_app.config[CONFIG_SINGLE_FILE_APPROACH])
+            # approach = cast(Approach, current_app.config[CONFIG_CHAT_APPROACH])
 
         # If session state is provided, persists the session state,
         # else creates a new session_id depending on the chat history options enabled.
@@ -306,7 +309,7 @@ async def upload2():
         await ingester.add_file(File(content=file_io, url=file_client.url))
         return jsonify({"message": "File uploaded successfully"}), 200
     except Exception as e:
-        current_app.logger.exception("Exception in /speech")
+        current_app.logger.exception("Exception in /upload2")
         return jsonify({"error": str(e)}), 500
 
 @bp.route("/chat/stream", methods=["POST"])
@@ -772,6 +775,28 @@ async def setup_clients():
 
     # ChatReadRetrieveReadApproach is used by /chat for multi-turn conversation
     current_app.config[CONFIG_CHAT_APPROACH] = ChatReadRetrieveReadApproach(
+        search_client=search_client,
+        search_index_name=AZURE_SEARCH_INDEX,
+        agent_model=AZURE_OPENAI_SEARCHAGENT_MODEL,
+        agent_deployment=AZURE_OPENAI_SEARCHAGENT_DEPLOYMENT,
+        agent_client=agent_client,
+        openai_client=openai_client,
+        auth_helper=auth_helper,
+        chatgpt_model=OPENAI_CHATGPT_MODEL,
+        chatgpt_deployment=AZURE_OPENAI_CHATGPT_DEPLOYMENT,
+        embedding_model=OPENAI_EMB_MODEL,
+        embedding_deployment=AZURE_OPENAI_EMB_DEPLOYMENT,
+        embedding_dimensions=OPENAI_EMB_DIMENSIONS,
+        embedding_field=AZURE_SEARCH_FIELD_NAME_EMBEDDING,
+        sourcepage_field=KB_FIELDS_SOURCEPAGE,
+        content_field=KB_FIELDS_CONTENT,
+        query_language=AZURE_SEARCH_QUERY_LANGUAGE,
+        query_speller=AZURE_SEARCH_QUERY_SPELLER,
+        prompt_manager=prompt_manager,
+        reasoning_effort=OPENAI_REASONING_EFFORT,
+    )
+    
+    current_app.config[CONFIG_SINGLE_FILE_APPROACH] = SingleFileSearchApproach(
         search_client=search_client,
         search_index_name=AZURE_SEARCH_INDEX,
         agent_model=AZURE_OPENAI_SEARCHAGENT_MODEL,
