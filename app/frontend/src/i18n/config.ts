@@ -15,6 +15,10 @@ import itTranslation from "../locales/it/translation.json";
 import heTranslation from "../locales/he/translation.json";
 
 export const supportedLngs: { [key: string]: { name: string; locale: string } } = {
+    he: {
+        name: "עברית",
+        locale: "he-IL"
+    },
     da: {
         name: "Dansk",
         locale: "da-DK"
@@ -61,6 +65,7 @@ i18next
     // for all options read: https://www.i18next.com/overview/configuration-options
     .init({
         resources: {
+            he: { translation: heTranslation },
             da: { translation: daTranslation },
             en: { translation: enTranslation },
             es: { translation: esTranslation },
